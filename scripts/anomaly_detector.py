@@ -42,6 +42,46 @@ def train_model(features, contamination):
     return model
 
 
+def classify_risk(row):
+    event_source = row.get("event_source")
+    event_name = row.get("event_name")
+    user_type = row.get("user_type")
+    error_code = row.get("error_code")
+
+    iam_write_actions = {
+        "CreateUser",
+        "AttachUserPolicy",
+        "CreateAccessKey",
+        "PutUserPolicy",
+        "CreatePolicy",
+        "CreateRole",
+        "UpdateAssumeRolePolicy",
+    }
+
+    if event_source == "iam.amazonaws.com" and event_name in iam_write_actions:
+        if error_code == "AccessDenied":
+            return "HIGH", "Denied IAM privilege modification attempt"
+
+        return "HIGH", "IAM privilege modification event"
+
+    if event_name == "CreateAccessKey":
+        if error_code == "AccessDenied":
+            return "HIGH", "Denied access key creation attempt"
+
+        return "HIGH", "Access key creation event"
+
+    if error_code == "AccessDenied":
+        return "MEDIUM", "Access denied API call"
+
+    if user_type == "Root" and pd.notna(error_code):
+        return "MEDIUM", "Root activity with API error"
+
+    if user_type == "Root":
+        return "LOW", "Root account activity"
+
+    return "LOW", "Statistical anomaly"
+
+
 def score_events(model, df, feature_columns):
     features = df[feature_columns]
 
@@ -53,6 +93,10 @@ def score_events(model, df, feature_columns):
         1: 0,
         -1: 1,
     })
+
+    risk_labels = results.apply(classify_risk, axis=1)
+    results["risk_level"] = [label[0] for label in risk_labels]
+    results["risk_reason"] = [label[1] for label in risk_labels]
 
     return results.sort_values("anomaly_score", ascending=True)
 
