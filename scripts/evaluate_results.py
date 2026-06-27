@@ -54,6 +54,11 @@ def calculate_metrics(df):
     else:
         recall = 0.0
 
+    if precision + recall > 0:
+        f1_score = 2 * precision * recall / (precision + recall)
+    else:
+        f1_score = 0.0
+
     return {
         "total_events": len(df),
         "predicted_anomalies": len(predicted_anomalies),
@@ -61,6 +66,7 @@ def calculate_metrics(df):
         "detected_known_suspicious": len(detected_known_suspicious),
         "precision": precision,
         "recall": recall,
+        "f1_score": f1_score,
         "precision_at_10": precision_at_k(df, 10),
         "precision_at_20": precision_at_k(df, 20),
     }
@@ -76,6 +82,7 @@ def print_metrics(metrics):
     print()
     print(f"Precision: {metrics['precision']:.2%}")
     print(f"Recall: {metrics['recall']:.2%}")
+    print(f"F1 score: {metrics['f1_score']:.2%}")
     print(f"Precision@10: {metrics['precision_at_10']:.2%}")
     print(f"Precision@20: {metrics['precision_at_20']:.2%}")
 
