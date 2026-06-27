@@ -94,6 +94,21 @@ def run_blocked_privilege_attempts(session):
         run_api_call(name, call)
 
 
+def run_selected_mode(session, mode, burst_rounds):
+    if mode == "normal":
+        run_normal_activity(session)
+    elif mode == "recon":
+        run_recon_burst(session, burst_rounds)
+    elif mode == "denied":
+        run_blocked_privilege_attempts(session)
+    elif mode == "all":
+        run_normal_activity(session)
+        run_recon_burst(session, burst_rounds)
+        run_blocked_privilege_attempts(session)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate CloudTrail events for anomaly detection."
@@ -102,6 +117,12 @@ def parse_args():
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
     parser.add_argument("--region", default=DEFAULT_REGION)
     parser.add_argument("--burst-rounds", type=int, default=3)
+    parser.add_argument("--repeat", type=int, default=1)
+    parser.add_argument(
+        "--mode",
+        choices=["normal", "recon", "denied", "all"],
+        default="all",
+    )
 
     return parser.parse_args()
 
@@ -117,10 +138,12 @@ def main():
     print("Starting CloudTrail event simulation")
     print(f"Profile: {args.profile}")
     print(f"Region: {args.region}")
+    print(f"Mode: {args.mode}")
+    print(f"Repeat: {args.repeat}")
 
-    run_normal_activity(session)
-    run_recon_burst(session, args.burst_rounds)
-    run_blocked_privilege_attempts(session)
+    for run_number in range(1, args.repeat + 1):
+        print(f"\n--- Simulation run {run_number}/{args.repeat} ---")
+        run_selected_mode(session, args.mode, args.burst_rounds)
 
     print("\nDone. CloudTrail can take a few minutes to deliver logs to S3.")
 
