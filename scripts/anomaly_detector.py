@@ -58,17 +58,17 @@ def classify_risk(row):
         "UpdateAssumeRolePolicy",
     }
 
-    if event_source == "iam.amazonaws.com" and event_name in iam_write_actions:
-        if error_code == "AccessDenied":
-            return "HIGH", "Denied IAM privilege modification attempt"
-
-        return "HIGH", "IAM privilege modification event"
-
     if event_name == "CreateAccessKey":
         if error_code == "AccessDenied":
             return "HIGH", "Denied access key creation attempt"
 
         return "HIGH", "Access key creation event"
+
+    if event_source == "iam.amazonaws.com" and event_name in iam_write_actions:
+        if error_code == "AccessDenied":
+            return "HIGH", "Denied IAM privilege modification attempt"
+
+        return "HIGH", "IAM privilege modification event"
 
     if error_code == "AccessDenied":
         return "MEDIUM", "Access denied API call"
