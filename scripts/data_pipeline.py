@@ -23,12 +23,10 @@ def list_log_files(s3_client, bucket, prefix, limit):
             key = item["Key"]
 
             if key.endswith(".json.gz"):
-                files.append(
-                    {
-                        "key": key,
-                        "last_modified": item["LastModified"],
-                    }
-                )
+                files.append({
+                    "key": key,
+                    "last_modified": item["LastModified"],
+                })
 
     files.sort(key=lambda item: item["last_modified"], reverse=True)
 
@@ -63,6 +61,8 @@ def get_nested_value(data, path, default=None):
 def flatten_event(event, source_file):
     return {
         "source_file": source_file,
+        "event_id": event.get("eventID"),
+        "request_id": event.get("requestID"),
         "event_time": event.get("eventTime"),
         "event_source": event.get("eventSource"),
         "event_name": event.get("eventName"),

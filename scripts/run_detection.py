@@ -11,6 +11,8 @@ DEFAULT_MODEL = "models/isolation_forest.joblib"
 DEFAULT_FEATURE_COLUMNS = "models/feature_columns.json"
 
 METADATA_COLUMNS = [
+    "event_id",
+    "request_id",
     "event_time",
     "event_source",
     "event_name",

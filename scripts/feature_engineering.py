@@ -56,7 +56,9 @@ def add_basic_features(df):
         (event_source == "iam.amazonaws.com")
         & (~df["read_only"].fillna(False).astype(bool))
     ).astype(int)
-    features["is_sensitive_iam_action"] = event_name.isin(sensitive_iam_actions).astype(int)
+    features["is_sensitive_iam_action"] = event_name.isin(
+        sensitive_iam_actions
+    ).astype(int)
     features["is_access_key_action"] = event_name.str.contains(
         "AccessKey",
         case=False,
@@ -107,6 +109,8 @@ def build_features(df):
 
     metadata = df[
         [
+            "event_id",
+            "request_id",
             "event_time",
             "event_source",
             "event_name",
