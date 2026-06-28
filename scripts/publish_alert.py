@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 
 import boto3
@@ -7,7 +8,7 @@ import boto3
 DEFAULT_PROFILE = "cloudtrail-guard"
 DEFAULT_REGION = "eu-central-1"
 DEFAULT_ALERT_FILE = "reports/latest_alert.txt"
-DEFAULT_TOPIC_ARN = "arn:aws:sns:eu-central-1:755395261517:cloudtrail-guard-alerts"
+DEFAULT_TOPIC_ARN = os.getenv("CLOUDTRAIL_GUARD_SNS_TOPIC_ARN")
 
 
 def load_alert(path):
@@ -49,6 +50,12 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if not args.topic_arn:
+        raise SystemExit(
+            "Missing SNS topic ARN. Pass --topic-arn or set "
+            "CLOUDTRAIL_GUARD_SNS_TOPIC_ARN."
+        )
 
     message = load_alert(args.alert_file)
 

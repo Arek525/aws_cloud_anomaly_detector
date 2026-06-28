@@ -1,10 +1,13 @@
 import argparse
+import os
 import subprocess
 import sys
 
 
 DEFAULT_LIMIT = 200
 DEFAULT_PROFILE = "cloudtrail-guard"
+DEFAULT_BUCKET = os.getenv("CLOUDTRAIL_BUCKET")
+DEFAULT_PREFIX = os.getenv("CLOUDTRAIL_PREFIX")
 DEFAULT_TRAIN_RATIO = 0.7
 
 
@@ -18,15 +21,23 @@ def run_command(command):
         raise SystemExit(completed_process.returncode)
 
 
-def run_data_pipeline(limit, profile):
-    run_command([
+def run_data_pipeline(limit, profile, bucket, prefix):
+    command = [
         sys.executable,
         "scripts/data_pipeline.py",
         "--limit",
         str(limit),
         "--profile",
         profile,
-    ])
+    ]
+
+    if bucket:
+        command.extend(["--bucket", bucket])
+
+    if prefix:
+        command.extend(["--prefix", prefix])
+
+    run_command(command)
 
 
 def run_split(train_ratio):
@@ -99,6 +110,8 @@ def parse_args():
 
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
+    parser.add_argument("--bucket", default=DEFAULT_BUCKET)
+    parser.add_argument("--prefix", default=DEFAULT_PREFIX)
     parser.add_argument("--train-ratio", type=float, default=DEFAULT_TRAIN_RATIO)
 
     return parser.parse_args()
@@ -110,9 +123,16 @@ def main():
     print("Starting CloudTrail Guard evaluation experiment")
     print(f"S3 log file limit: {args.limit}")
     print(f"AWS profile: {args.profile}")
+    print(f"CloudTrail bucket: {args.bucket or 'not configured'}")
+    print(f"CloudTrail prefix: {args.prefix or 'not configured'}")
     print(f"Train ratio: {args.train_ratio}")
 
-    run_data_pipeline(limit=args.limit, profile=args.profile)
+    run_data_pipeline(
+        limit=args.limit,
+        profile=args.profile,
+        bucket=args.bucket,
+        prefix=args.prefix,
+    )
     run_split(train_ratio=args.train_ratio)
     run_train_features()
     run_detect_features()

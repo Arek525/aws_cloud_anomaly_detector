@@ -1,5 +1,6 @@
 import argparse
 import json
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -114,6 +115,8 @@ def main():
     features = align_features(dataset, feature_columns)
 
     results = score_events(model, dataset, features)
+
+    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     results.to_csv(args.output, index=False)
 
     print(f"Rows scored: {len(results)}")

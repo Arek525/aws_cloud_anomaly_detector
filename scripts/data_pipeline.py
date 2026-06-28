@@ -1,7 +1,9 @@
 import argparse
 import gzip
 import json
+import os
 from io import BytesIO
+from pathlib import Path
 
 import boto3
 import pandas as pd
@@ -9,8 +11,8 @@ import pandas as pd
 
 DEFAULT_PROFILE = "cloudtrail-guard"
 DEFAULT_REGION = "eu-central-1"
-DEFAULT_BUCKET = "cloudtrail-guard-logs-755395261517"
-DEFAULT_PREFIX = "AWSLogs/755395261517/CloudTrail/"
+DEFAULT_BUCKET = os.getenv("CLOUDTRAIL_BUCKET")
+DEFAULT_PREFIX = os.getenv("CLOUDTRAIL_PREFIX")
 DEFAULT_OUTPUT = "data/processed/cloudtrail_events.csv"
 
 
@@ -128,6 +130,16 @@ def main():
         region_name=args.region,
     )
 
+    if not args.bucket:
+        raise SystemExit(
+            "Missing S3 bucket. Pass --bucket or set CLOUDTRAIL_BUCKET."
+        )
+
+    if not args.prefix:
+        raise SystemExit(
+            "Missing CloudTrail prefix. Pass --prefix or set CLOUDTRAIL_PREFIX."
+        )
+
     dataset = build_dataset(
         session=session,
         bucket=args.bucket,
@@ -138,6 +150,7 @@ def main():
     print(f"Rows: {len(dataset)}")
     print(f"Columns: {list(dataset.columns)}")
 
+    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     dataset.to_csv(args.output, index=False)
     print(f"Saved dataset to {args.output}")
 

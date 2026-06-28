@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 import pandas as pd
 
@@ -141,6 +142,8 @@ def main():
     metadata, features = build_features(events)
 
     dataset = pd.concat([metadata, features], axis=1)
+
+    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     dataset.to_csv(args.output, index=False)
 
     print(f"Input rows: {len(events)}")

@@ -1,10 +1,14 @@
 import argparse
+import os
 import subprocess
 import sys
 
 
 DEFAULT_LIMIT = 100
 DEFAULT_PROFILE = "cloudtrail-guard"
+DEFAULT_BUCKET = os.getenv("CLOUDTRAIL_BUCKET")
+DEFAULT_PREFIX = os.getenv("CLOUDTRAIL_PREFIX")
+DEFAULT_SNS_TOPIC_ARN = os.getenv("CLOUDTRAIL_GUARD_SNS_TOPIC_ARN")
 
 
 def run_command(command):
@@ -17,15 +21,23 @@ def run_command(command):
         raise SystemExit(completed_process.returncode)
 
 
-def run_data_pipeline(limit, profile):
-    run_command([
+def run_data_pipeline(limit, profile, bucket, prefix):
+    command = [
         sys.executable,
         "scripts/data_pipeline.py",
         "--limit",
         str(limit),
         "--profile",
         profile,
-    ])
+    ]
+
+    if bucket:
+        command.extend(["--bucket", bucket])
+
+    if prefix:
+        command.extend(["--prefix", prefix])
+
+    run_command(command)
 
 
 def run_feature_engineering():
@@ -63,13 +75,18 @@ def run_alert_generation():
     ])
 
 
-def run_alert_publish(profile):
-    run_command([
+def run_alert_publish(profile, topic_arn):
+    command = [
         sys.executable,
         "scripts/publish_alert.py",
         "--profile",
         profile,
-    ])
+    ]
+
+    if topic_arn:
+        command.extend(["--topic-arn", topic_arn])
+
+    run_command(command)
 
 
 def parse_args():
@@ -84,6 +101,9 @@ def parse_args():
     )
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
+    parser.add_argument("--bucket", default=DEFAULT_BUCKET)
+    parser.add_argument("--prefix", default=DEFAULT_PREFIX)
+    parser.add_argument("--sns-topic-arn", default=DEFAULT_SNS_TOPIC_ARN)
     parser.add_argument(
         "--evaluate",
         action="store_true",
@@ -110,11 +130,18 @@ def main():
     print(f"Mode: {args.mode}")
     print(f"S3 log file limit: {args.limit}")
     print(f"AWS profile: {args.profile}")
+    print(f"CloudTrail bucket: {args.bucket or 'not configured'}")
+    print(f"CloudTrail prefix: {args.prefix or 'not configured'}")
     print(f"Evaluation enabled: {args.evaluate}")
     print(f"Alert generation enabled: {args.alert}")
     print(f"SNS publish enabled: {args.publish}")
 
-    run_data_pipeline(limit=args.limit, profile=args.profile)
+    run_data_pipeline(
+        limit=args.limit,
+        profile=args.profile,
+        bucket=args.bucket,
+        prefix=args.prefix,
+    )
     run_feature_engineering()
 
     if args.mode == "train":
@@ -136,7 +163,7 @@ def main():
             run_alert_generation()
 
         if args.publish:
-            run_alert_publish(args.profile)
+            run_alert_publish(args.profile, args.sns_topic_arn)
 
     print("\nPipeline finished successfully")
 
