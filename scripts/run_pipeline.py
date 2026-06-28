@@ -63,6 +63,15 @@ def run_alert_generation():
     ])
 
 
+def run_alert_publish(profile):
+    run_command([
+        sys.executable,
+        "scripts/publish_alert.py",
+        "--profile",
+        profile,
+    ])
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Run the CloudTrail anomaly detection pipeline."
@@ -85,6 +94,11 @@ def parse_args():
         action="store_true",
         help="Generate HIGH risk alert output after detection.",
     )
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish generated HIGH risk alert to SNS.",
+    )
 
     return parser.parse_args()
 
@@ -98,6 +112,7 @@ def main():
     print(f"AWS profile: {args.profile}")
     print(f"Evaluation enabled: {args.evaluate}")
     print(f"Alert generation enabled: {args.alert}")
+    print(f"SNS publish enabled: {args.publish}")
 
     run_data_pipeline(limit=args.limit, profile=args.profile)
     run_feature_engineering()
@@ -107,6 +122,8 @@ def main():
             raise SystemExit("--evaluate can only be used with --mode detect")
         if args.alert:
             raise SystemExit("--alert can only be used with --mode detect")
+        if args.publish:
+            raise SystemExit("--publish can only be used with --mode detect")
 
         run_training()
     elif args.mode == "detect":
@@ -115,8 +132,11 @@ def main():
         if args.evaluate:
             run_evaluation()
 
-        if args.alert:
+        if args.alert or args.publish:
             run_alert_generation()
+
+        if args.publish:
+            run_alert_publish(args.profile)
 
     print("\nPipeline finished successfully")
 
