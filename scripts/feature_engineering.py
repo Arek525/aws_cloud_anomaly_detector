@@ -35,6 +35,50 @@ def add_basic_features(df):
     )
     features["has_error"] = df["error_code"].notna().astype(int)
 
+    event_name = df["event_name"].fillna("")
+    event_source = df["event_source"].fillna("")
+    error_code = df["error_code"].fillna("")
+    user_agent = df["user_agent"].fillna("")
+
+    sensitive_iam_actions = {
+        "CreateUser",
+        "AttachUserPolicy",
+        "CreateAccessKey",
+        "PutUserPolicy",
+        "CreatePolicy",
+        "CreateRole",
+        "UpdateAssumeRolePolicy",
+    }
+
+    features["is_access_denied"] = (error_code == "AccessDenied").astype(int)
+    features["is_iam_event"] = (event_source == "iam.amazonaws.com").astype(int)
+    features["is_iam_write_event"] = (
+        (event_source == "iam.amazonaws.com")
+        & (~df["read_only"].fillna(False).astype(bool))
+    ).astype(int)
+    features["is_sensitive_iam_action"] = event_name.isin(sensitive_iam_actions).astype(int)
+    features["is_access_key_action"] = event_name.str.contains(
+        "AccessKey",
+        case=False,
+    ).astype(int)
+    features["is_policy_action"] = event_name.str.contains(
+        "Policy",
+        case=False,
+    ).astype(int)
+
+    features["is_boto3_user_agent"] = user_agent.str.contains(
+        "Boto3",
+        case=False,
+    ).astype(int)
+    features["is_aws_cli_user_agent"] = user_agent.str.contains(
+        "aws-cli",
+        case=False,
+    ).astype(int)
+    features["is_console_user_agent"] = user_agent.str.contains(
+        "Mozilla",
+        case=False,
+    ).astype(int)
+
     features["is_root_user"] = (df["user_type"] == "Root").astype(int)
     features["is_iam_user"] = (df["user_type"] == "IAMUser").astype(int)
     features["is_aws_service"] = (df["user_type"] == "AWSService").astype(int)

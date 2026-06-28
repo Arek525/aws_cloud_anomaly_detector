@@ -37,6 +37,13 @@ def precision_at_k(df, k):
     return top_k["is_known_suspicious"].mean()
 
 
+def calculate_f1(precision, recall):
+    if precision + recall == 0:
+        return 0.0
+
+    return 2 * precision * recall / (precision + recall)
+
+
 def calculate_metrics(df):
     predicted_anomalies = df[df["is_anomaly"] == 1]
     known_suspicious = df[df["is_known_suspicious"] == 1]
@@ -54,10 +61,25 @@ def calculate_metrics(df):
     else:
         recall = 0.0
 
-    if precision + recall > 0:
-        f1_score = 2 * precision * recall / (precision + recall)
+    high_alerts = df[
+        (df["is_anomaly"] == 1)
+        & (df["risk_level"] == "HIGH")
+    ]
+
+    detected_known_suspicious_high = known_suspicious[
+        (known_suspicious["is_anomaly"] == 1)
+        & (known_suspicious["risk_level"] == "HIGH")
+    ]
+
+    if len(high_alerts) > 0:
+        high_precision = high_alerts["is_known_suspicious"].mean()
     else:
-        f1_score = 0.0
+        high_precision = 0.0
+
+    if len(known_suspicious) > 0:
+        high_recall = len(detected_known_suspicious_high) / len(known_suspicious)
+    else:
+        high_recall = 0.0
 
     return {
         "total_events": len(df),
@@ -66,9 +88,14 @@ def calculate_metrics(df):
         "detected_known_suspicious": len(detected_known_suspicious),
         "precision": precision,
         "recall": recall,
-        "f1_score": f1_score,
+        "f1_score": calculate_f1(precision, recall),
         "precision_at_10": precision_at_k(df, 10),
         "precision_at_20": precision_at_k(df, 20),
+        "high_alerts": len(high_alerts),
+        "detected_known_suspicious_high": len(detected_known_suspicious_high),
+        "high_precision": high_precision,
+        "high_recall": high_recall,
+        "high_f1_score": calculate_f1(high_precision, high_recall),
     }
 
 
@@ -85,6 +112,18 @@ def print_metrics(metrics):
     print(f"F1 score: {metrics['f1_score']:.2%}")
     print(f"Precision@10: {metrics['precision_at_10']:.2%}")
     print(f"Precision@20: {metrics['precision_at_20']:.2%}")
+
+    print()
+    print("HIGH risk alert quality")
+    print("-----------------------")
+    print(f"HIGH alerts: {metrics['high_alerts']}")
+    print(
+        "Known suspicious in HIGH alerts: "
+        f"{metrics['detected_known_suspicious_high']}"
+    )
+    print(f"HIGH precision: {metrics['high_precision']:.2%}")
+    print(f"HIGH recall: {metrics['high_recall']:.2%}")
+    print(f"HIGH F1 score: {metrics['high_f1_score']:.2%}")
 
 
 def print_top_events(df):
