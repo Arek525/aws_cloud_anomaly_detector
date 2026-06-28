@@ -56,6 +56,13 @@ def run_evaluation():
     ])
 
 
+def run_alert_generation():
+    run_command([
+        sys.executable,
+        "scripts/generate_alerts.py",
+    ])
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Run the CloudTrail anomaly detection pipeline."
@@ -73,6 +80,11 @@ def parse_args():
         action="store_true",
         help="Run pseudo-label evaluation after detection.",
     )
+    parser.add_argument(
+        "--alert",
+        action="store_true",
+        help="Generate HIGH risk alert output after detection.",
+    )
 
     return parser.parse_args()
 
@@ -85,6 +97,7 @@ def main():
     print(f"S3 log file limit: {args.limit}")
     print(f"AWS profile: {args.profile}")
     print(f"Evaluation enabled: {args.evaluate}")
+    print(f"Alert generation enabled: {args.alert}")
 
     run_data_pipeline(limit=args.limit, profile=args.profile)
     run_feature_engineering()
@@ -92,6 +105,8 @@ def main():
     if args.mode == "train":
         if args.evaluate:
             raise SystemExit("--evaluate can only be used with --mode detect")
+        if args.alert:
+            raise SystemExit("--alert can only be used with --mode detect")
 
         run_training()
     elif args.mode == "detect":
@@ -99,6 +114,9 @@ def main():
 
         if args.evaluate:
             run_evaluation()
+
+        if args.alert:
+            run_alert_generation()
 
     print("\nPipeline finished successfully")
 
