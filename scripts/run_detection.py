@@ -30,13 +30,7 @@ def load_feature_columns(path):
 
 
 def align_features(df, feature_columns):
-    features = df.copy()
-
-    for column in feature_columns:
-        if column not in features.columns:
-            features[column] = 0
-
-    return features[feature_columns]
+    return df.reindex(columns=feature_columns, fill_value=0)
 
 
 def classify_risk(row):
